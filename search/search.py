@@ -87,13 +87,57 @@ def depthFirstSearch(problem: SearchProblem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    "Inicio da dfs, busca em profundidade no grafo"   
+    from util import Stack
+
+    pilha = Stack()
+    pilha.push((problem.getStartState(), []))
+
+    visitados = set()
+
+    while not pilha.isEmpty():
+        no_atual, acoes = pilha.pop()
+        
+        if problem.isGoalState(no_atual):
+            return acoes
+
+        if no_atual not in visitados:
+            visitados.add(no_atual)
+
+            for no_prox, acao, custo in problem.getSuccessors(no_atual):
+                if no_prox not in visitados:
+                    novas_acoes = acoes + [acao]
+                    pilha.push((no_prox, novas_acoes))
+
+    return []
 
 def breadthFirstSearch(problem: SearchProblem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    "Inicio da bfs, busca em largura no grafo"   
+    from util import Queue
 
+    fila = Queue()
+    fila.push((problem.getStartState(), []))
+
+    visitados = set()
+
+    while not fila.isEmpty():
+        no_atual, acoes = fila.pop()
+        
+        if problem.isGoalState(no_atual):
+            return acoes
+
+        if no_atual not in visitados:
+            visitados.add(no_atual)
+
+            for no_prox, acao, custo in problem.getSuccessors(no_atual):
+                if no_prox not in visitados:
+                    novas_acoes = acoes + [acao]
+                    fila.push((no_prox, novas_acoes))
+
+    return []
+    
 def uniformCostSearch(problem: SearchProblem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
