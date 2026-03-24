@@ -141,6 +141,31 @@ def breadthFirstSearch(problem: SearchProblem):
 def uniformCostSearch(problem: SearchProblem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
+    "Mesma coisa que a dfs, mas tem uma prioridade na escolha do ramo, sempre escolhe o com menos custo"
+    from util import PriorityQueue
+
+    fila = PriorityQueue()
+    fila.push((problem.getStartState(), [], 0), 0)
+
+    visitados = set()
+
+    while not fila.isEmpty():
+        no_atual, acoes, custo_atual = fila.pop()
+        
+        if problem.isGoalState(no_atual):
+            return acoes
+
+        if no_atual not in visitados:
+            visitados.add(no_atual)
+
+            for no_prox, acao, custo in problem.getSuccessors(no_atual):
+                if no_prox not in visitados:
+                    novo_custo = custo + custo_atual
+                    novas_acoes = acoes + [acao]
+                    fila.push((no_prox, novas_acoes, novo_custo), novo_custo)
+
+    return []
+
     util.raiseNotDefined()
 
 def nullHeuristic(state, problem=None):
