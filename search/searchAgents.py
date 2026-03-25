@@ -289,52 +289,58 @@ class CornersProblem(search.SearchProblem):
             if not startingGameState.hasFood(*corner):
                 print('Warning: no food in corner ' + str(corner))
         self._expanded = 0 # DO NOT CHANGE; Number of search nodes expanded
-
+    
     def getStartState(self):
         """
-        Returns the start state (in your state space, not the full Pacman state
-        space)
+        Retorna o estado inicial: a posição do Pacman e uma tupla de 
+        4 booleanos (False) indicando que nenhum canto foi visitado.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Verifica se o Pacman já começa em cima de um canto
+        visited_corners = []
+        for corner in self.corners:
+            visited_corners.append(self.startingPosition == corner)
+            
+        return (self.startingPosition, tuple(visited_corners))
 
     def isGoalState(self, state: Any):
         """
-        Returns whether this search state is a goal state of the problem.
+        O objetivo é atingido quando todos os 4 booleanos na tupla 
+        de visitação são True.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        visited_corners = state[1]
+        return all(visited_corners)
 
     def getSuccessors(self, state: Any):
         """
-        Returns successor states, the actions they require, and a cost of 1.
-
-         As noted in search.py:
-            For a given state, this should return a list of triples, (successor,
-            action, stepCost), where 'successor' is a successor to the current
-            state, 'action' is the action required to get there, and 'stepCost'
-            is the incremental cost of expanding to that successor
+        Retorna os sucessores, as ações e o custo de 1 para cada passo.
         """
-
         successors = []
+        current_pos, visited_corners = state
+        x, y = current_pos
+
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
+            #Calcula a próxima posicao
+            dx, dy = Actions.directionToVector(action)
+            next_x, next_y = int(x + dx), int(y + dy)
 
-            "*** YOUR CODE HERE ***"
+            #Verifica a próxima posicao 
+            if not self.walls[next_x][next_y]:
+                next_pos = (next_x, next_y)
+                
+                #Atualiza o status dos cantos visitados
+                new_visited_list = list(visited_corners)
+                for i in range(len(self.corners)):
+                    if next_pos == self.corners[i]:
+                        new_visited_list[i] = True
+                
+                #Cria o novo estado
+                next_state = (next_pos, tuple(new_visited_list))
+                successors.append((next_state, action, 1))
 
-        self._expanded += 1 # DO NOT CHANGE
+        self._expanded += 1 
         return successors
 
     def getCostOfActions(self, actions):
-        """
-        Returns the cost of a particular sequence of actions.  If those actions
-        include an illegal move, return 999999.  This is implemented for you.
-        """
         if actions == None: return 999999
         x,y= self.startingPosition
         for action in actions:
@@ -342,6 +348,60 @@ class CornersProblem(search.SearchProblem):
             x, y = int(x + dx), int(y + dy)
             if self.walls[x][y]: return 999999
         return len(actions)
+
+
+    # def getStartState(self):
+    #     """
+    #     Returns the start state (in your state space, not the full Pacman state
+    #     space)
+    #     """
+    #     "*** YOUR CODE HERE ***"
+    #     util.raiseNotDefined()
+
+    # def isGoalState(self, state: Any):
+    #     """
+    #     Returns whether this search state is a goal state of the problem.
+    #     """
+    #     "*** YOUR CODE HERE ***"
+    #     util.raiseNotDefined()
+
+    # def getSuccessors(self, state: Any):
+    #     """
+    #     Returns successor states, the actions they require, and a cost of 1.
+
+    #      As noted in search.py:
+    #         For a given state, this should return a list of triples, (successor,
+    #         action, stepCost), where 'successor' is a successor to the current
+    #         state, 'action' is the action required to get there, and 'stepCost'
+    #         is the incremental cost of expanding to that successor
+    #     """
+
+    #     successors = []
+    #     for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+    #         # Add a successor state to the successor list if the action is legal
+    #         # Here's a code snippet for figuring out whether a new position hits a wall:
+    #         #   x,y = currentPosition
+    #         #   dx, dy = Actions.directionToVector(action)
+    #         #   nextx, nexty = int(x + dx), int(y + dy)
+    #         #   hitsWall = self.walls[nextx][nexty]
+
+    #         "*** YOUR CODE HERE ***"
+
+    #     self._expanded += 1 # DO NOT CHANGE
+    #     return successors
+
+    # def getCostOfActions(self, actions):
+    #     """
+    #     Returns the cost of a particular sequence of actions.  If those actions
+    #     include an illegal move, return 999999.  This is implemented for you.
+    #     """
+    #     if actions == None: return 999999
+    #     x,y= self.startingPosition
+    #     for action in actions:
+    #         dx, dy = Actions.directionToVector(action)
+    #         x, y = int(x + dx), int(y + dy)
+    #         if self.walls[x][y]: return 999999
+    #     return len(actions)
 
 
 def cornersHeuristic(state: Any, problem: CornersProblem):
