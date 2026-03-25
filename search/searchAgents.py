@@ -341,6 +341,7 @@ class CornersProblem(search.SearchProblem):
         return successors
 
     def getCostOfActions(self, actions):
+        # Já implementado no arquivo original
         if actions == None: return 999999
         x,y= self.startingPosition
         for action in actions:
@@ -417,10 +418,40 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     shortest path from the state to a goal of the problem; i.e.  it should be
     admissible (as well as consistent).
     """
-    corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
-
     "*** YOUR CODE HERE ***"
+    from util import manhattanDistance #
+    import itertools
+
+    current_pos, visited_corners = state
+    corners = problem.corners # Coordenadas dos 4 cantos
+    
+    # 1. Filtra apenas os cantos que ainda NÃO foram visitados
+    unvisited = []
+    for i in range(len(visited_corners)):
+        if not visited_corners[i]:
+            unvisited.append(corners[i])
+
+    # 2. Se não há cantos restantes, a estimativa é 0 (chegou ao objetivo)
+    if not unvisited:
+        return 0
+
+    # 3. Encontra o caminho mais curto de Manhattan que visita todos os não visitados
+    # Como são no máximo 4 cantos, o número de permutações é pequeno (máx 4! = 24)
+    min_path_length = float('inf')
+    
+    for path in itertools.permutations(unvisited):
+        current_path_dist = 0
+        temp_pos = current_pos
+        
+        for next_corner in path:
+            current_path_dist += manhattanDistance(temp_pos, next_corner)
+            temp_pos = next_corner
+            
+        if current_path_dist < min_path_length:
+            min_path_length = current_path_dist
+
+    return min_path_length
+
     return 0 # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
@@ -515,6 +546,21 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
+    """
+    O estado é uma tupla (pacmanPosition, foodGrid).
+    """
+    position, foodGrid = state
+    foodList = foodGrid.asList() # Converte a grade de comida em uma lista de coordenadas (x, y)
+
+    if not foodList:
+        return 0
+
+    # Calcula a distância de labirinto de Pacman até cada bolinha restante.
+    # Usamos o 'problem.startingGameState' porque o mazeDistance precisa do estado original para ver as paredes.
+    distances = [mazeDistance(position, food, problem.startingGameState) for food in foodList]
+    
+    # Retorna a maior dist
+    return max(distances)
     return 0
 
 class ClosestDotSearchAgent(SearchAgent):
@@ -546,7 +592,7 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return search.breadthFirstSearch(problem)
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -582,9 +628,11 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.food[x][y]
+
 
 def mazeDistance(point1: Tuple[int, int], point2: Tuple[int, int], gameState: pacman.GameState) -> int:
+
     """
     Returns the maze distance between any two points, using the search functions
     you have already built. The gameState can be any game state -- Pacman's
