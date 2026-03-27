@@ -142,7 +142,8 @@ def uniformCostSearch(problem: SearchProblem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
     "Mesma coisa que a dfs, mas tem uma prioridade na escolha do ramo, sempre escolhe o com menos custo"
-    from util import PriorityQueue
+    "A diferenca esta no tipo de fila"
+    from util import PriorityQueue 
 
     fila = PriorityQueue()
     fila.push((problem.getStartState(), [], 0), 0)
@@ -178,6 +179,9 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
+    "Leva em conta a funcao de heuristica para escolhar o ramo"
+    "Parecido com a de custo uniforme"
+    ""
     from util import PriorityQueue
 
     fila = PriorityQueue()
@@ -198,7 +202,7 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
             for no_prox, acao, custo in problem.getSuccessors(no_atual):
                 if no_prox not in visitados:
                     novo_custo_real = custo + custo_atual
-                    custo_heuristica = heuristic(no_prox, problem)
+                    custo_heuristica = heuristic(no_prox, problem)  # aqui conta a heuristica no custo do no
                     custo_final = novo_custo_real + custo_heuristica
                     novas_acoes = acoes + [acao]
                     fila.push((no_prox, novas_acoes, novo_custo_real), custo_final)

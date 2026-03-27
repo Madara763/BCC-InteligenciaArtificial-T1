@@ -425,18 +425,18 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     current_pos, visited_corners = state
     corners = problem.corners # Coordenadas dos 4 cantos
     
-    # 1. Filtra apenas os cantos que ainda NÃO foram visitados
+    #filtra os nao visitados
     unvisited = []
     for i in range(len(visited_corners)):
         if not visited_corners[i]:
             unvisited.append(corners[i])
 
-    # 2. Se não há cantos restantes, a estimativa é 0 (chegou ao objetivo)
+    #se visitou todos acabou
     if not unvisited:
         return 0
 
-    # 3. Encontra o caminho mais curto de Manhattan que visita todos os não visitados
-    # Como são no máximo 4 cantos, o número de permutações é pequeno (máx 4! = 24)
+    # Encontra o caminho mais curto de Manhattan que visita todos 
+    # Como sao 4 cantos da pra fazer todos os testes
     min_path_length = float('inf')
     
     for path in itertools.permutations(unvisited):
@@ -628,7 +628,8 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        return self.food[x][y]
+        # ...
+        return self.food[x][y] 
 
 
 def mazeDistance(point1: Tuple[int, int], point2: Tuple[int, int], gameState: pacman.GameState) -> int:
