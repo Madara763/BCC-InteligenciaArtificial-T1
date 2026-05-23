@@ -41,8 +41,10 @@ class QLearningAgent(ReinforcementAgent):
     def __init__(self, **args):
         "You can initialize Q-values here..."
         ReinforcementAgent.__init__(self, **args)
-
         "*** YOUR CODE HERE ***"
+        # Tabela para armazenar os Q-Values conhecidos
+        self.q_valores = util.Counter()
+
 
     def getQValue(self, state, action):
         """
@@ -51,7 +53,8 @@ class QLearningAgent(ReinforcementAgent):
           or the Q node value otherwise
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Se o estado/ação não foi explorado, retorna 0.0
+        return self.q_valores[(state, action)]
 
 
     def computeValueFromQValues(self, state):
@@ -62,7 +65,12 @@ class QLearningAgent(ReinforcementAgent):
           terminal state, you should return a value of 0.0.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        acoes_legais = self.getLegalActions(state)
+        if not acoes_legais:
+            return 0.0
+            
+        # O Valor (V) do estado é o maior Q-Value entre as ações legais
+        return max([self.getQValue(state, acao) for acao in acoes_legais])
 
     def computeActionFromQValues(self, state):
         """
@@ -71,7 +79,16 @@ class QLearningAgent(ReinforcementAgent):
           you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        acoes_legais = self.getLegalActions(state)
+        if not acoes_legais:
+            return None
+            
+        melhor_valor = self.computeValueFromQValues(state)
+        # Se houver empates (mesmo Q-Value), pegamos todas as melhores ações
+        melhores_acoes = [acao for acao in acoes_legais if self.getQValue(state, acao) == melhor_valor]
+        
+        # O projeto exige que o desempate seja aleatório
+        return random.choice(melhores_acoes)
 
     def getAction(self, state):
         """
@@ -85,12 +102,23 @@ class QLearningAgent(ReinforcementAgent):
           HINT: To pick randomly from a list, use random.choice(list)
         """
         # Pick Action
-        legalActions = self.getLegalActions(state)
-        action = None
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
-        return action
+        """
+        Implementa a exploração Epsilon-Greedy.
+        """
+        acoes_legais = self.getLegalActions(state)
+        if not acoes_legais:
+            return None
+            
+        probabilidade_exploracao = self.epsilon
+        
+        # flipCoin retorna True com probabilidade 'epsilon'
+        if util.flipCoin(probabilidade_exploracao):
+            # Age aleatoriamente (Exploração)
+            return random.choice(acoes_legais)
+        else:
+            # Pega a melhor ação conhecida (Exploração da Política)
+            return self.computeActionFromQValues(state)
 
     def update(self, state, action, nextState, reward):
         """
@@ -102,7 +130,20 @@ class QLearningAgent(ReinforcementAgent):
           it will be called on your behalf
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        """
+        A atualização principal do Q-Learning.
+        """
+        valor_antigo = self.getQValue(state, action)
+        valor_futuro = self.computeValueFromQValues(nextState)
+        
+        # A "Amostra" observada agora
+        amostra = reward + self.discount * valor_futuro
+        
+        # Fórmula de atualização iterativa usando a taxa de aprendizado (alpha)
+        novo_valor = (1 - self.alpha) * valor_antigo + self.alpha * amostra
+        
+        # Atualiza a tabela
+        self.q_valores[(state, action)] = novo_valor
 
     def getPolicy(self, state):
         return self.computeActionFromQValues(state)
@@ -154,10 +195,10 @@ class ApproximateQAgent(PacmanQAgent):
     def __init__(self, extractor='IdentityExtractor', **args):
         self.featExtractor = util.lookup(extractor, globals())()
         PacmanQAgent.__init__(self, **args)
-        self.weights = util.Counter()
+        self.pesos = util.Counter()
 
     def getWeights(self):
-        return self.weights
+        return self.pesos
 
     def getQValue(self, state, action):
         """
@@ -165,14 +206,36 @@ class ApproximateQAgent(PacmanQAgent):
           where * is the dotProduct operator
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        """
+        O Q-Value agora é o Produto Escalar (Dot Product) entre as características e os pesos.
+        """
+        caracteristicas = self.featExtractor.getFeatures(state, action)
+        q_valor = 0.0
+        
+        for chave, valor in caracteristicas.items():
+            q_valor += self.pesos[chave] * valor
+            
+        return q_valor
 
     def update(self, state, action, nextState, reward):
         """
            Should update your weights based on transition
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        """
+        Atualiza todos os pesos com base na diferença (erro temporal).
+        """
+        valor_futuro = self.getValue(nextState)
+        valor_estimado_atual = self.getQValue(state, action)
+        
+        # Diferença = (Recompensa + Gama * Max_Q) - Q_Atual
+        diferenca = (reward + self.discount * valor_futuro) - valor_estimado_atual
+        
+        caracteristicas = self.featExtractor.getFeatures(state, action)
+        
+        # Atualiza os pesos: w = w + alpha * diferença * f(s,a)
+        for chave, valor in caracteristicas.items():
+            self.pesos[chave] += self.alpha * diferenca * valor
 
     def final(self, state):
         "Called at the end of each game."

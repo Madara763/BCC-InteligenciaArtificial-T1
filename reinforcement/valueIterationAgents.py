@@ -62,6 +62,26 @@ class ValueIterationAgent(ValueEstimationAgent):
     def runValueIteration(self):
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
+        """
+        Executa o algoritmo de iteração de valor pelo número de iterações definido.
+        """
+        for i in range(self.iterations):
+            # Usamos um dicionário temporário porque a atualização deve ser em lote (batch)
+            novos_valores = util.Counter()
+            estados = self.mdp.getStates()
+            
+            for estado in estados:
+                # Estados terminais sempre têm valor 0
+                if self.mdp.isTerminal(estado):
+                    continue
+                
+                acoes_legais = self.mdp.getPossibleActions(estado)
+                # O novo valor do estado é o Q-Value máximo entre as ações possíveis
+                melhor_valor = max([self.computeQValueFromValues(estado, acao) for acao in acoes_legais])
+                novos_valores[estado] = melhor_valor
+                
+            # Ao final do ciclo de todos os estados, atualizamos a tabela oficial
+            self.values = novos_valores
 
 
     def getValue(self, state):
@@ -77,7 +97,21 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        """
+        Calcula o Q-Value (Q(s,a)) a partir dos valores atuais (V(s')).
+        """
+        q_valor = 0.0
+        transicoes = self.mdp.getTransitionStatesAndProbs(state, action)
+        
+        for proximo_estado, probabilidade in transicoes:
+            recompensa = self.mdp.getReward(state, action, proximo_estado)
+            desconto = self.discount
+            valor_futuro = self.values[proximo_estado]
+            
+            # Equação de Bellman: soma de P(s') * [R + gama * V(s')]
+            q_valor += probabilidade * (recompensa + desconto * valor_futuro)
+            
+        return q_valor
 
     def computeActionFromValues(self, state):
         """
@@ -89,7 +123,23 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        """
+        Retorna a melhor ação (política ótima atual) para o estado dado.
+        """
+        if self.mdp.isTerminal(state):
+            return None
+            
+        acoes_legais = self.mdp.getPossibleActions(state)
+        melhor_acao = None
+        maior_q_valor = -float('inf')
+        
+        for acao in acoes_legais:
+            q_valor = self.computeQValueFromValues(state, acao)
+            if q_valor > maior_q_valor:
+                maior_q_valor = q_valor
+                melhor_acao = acao
+                
+        return melhor_acao
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
