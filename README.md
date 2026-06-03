@@ -1,4 +1,4 @@
-# BCC-InteligenciaArtificial-T1
+# BCC-InteligenciaArtificial
 ## Esse repositório destinado ao desenvolvimento dos 4 projetos da materia de IA do curso de BCC.
 
 ### Projeto 1
