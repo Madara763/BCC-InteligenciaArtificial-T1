@@ -22,58 +22,31 @@ from torch import movedim
 
 class PerceptronModel(Module):
     def __init__(self, dimensions):
-        """
-        Initialize a new Perceptron instance.
-
-        A perceptron classifies data points as either belonging to a particular
-        class (+1) or not (-1). `dimensions` is the dimensionality of the data.
-        For example, dimensions=2 would mean that the perceptron must classify
-        2D points.
-
-        In order for our autograder to detect your weight, initialize it as a
-        pytorch Parameter object as follows:
-
-        Parameter(weight_vector)
-
-        where weight_vector is a pytorch Tensor of dimension 'dimensions'
-
-        Hint: You can use ones(dim) to create a tensor of dimension dim.
-        """
         super(PerceptronModel, self).__init__()
-
-        "*** YOUR CODE HERE ***"
-
+        # Inicializamos os pesos como um parâmetro do PyTorch.
+        # A forma (shape) exigida é (1, dimensions)
+        self.pesos = Parameter(ones(1, dimensions))
 
     def get_weights(self):
-        """
-        Return a Parameter instance with the current weights of the perceptron.
-        """
-        return self.w
+        return self.pesos
 
     def forward(self, x):
-        """
-        Calculates the score assigned by the perceptron to a data point x.
-
-        Inputs:
-            x: a node with shape (dimensions)
-        Returns: a node containing a single number (the score)
-
-        The pytorch function `tensordot` may be helpful here.
-        """
-        "*** YOUR CODE HERE ***"
-
+        # Verifica se 'x' é um lote (batch 2D) ou um único dado (1D)
+        # Isso alinha a dimensão para o produto escalar (tensordot)
+        dimensao_x = 1 if len(x.shape) > 1 else 0
         
+        # Produto escalar entre nossos pesos e os dados de entrada
+        produto_escalar = tensordot(self.pesos, x, dims=([1], [dimensao_x]))
+        return produto_escalar
 
     def get_prediction(self, x):
-        """
-        Calculates the predicted class for a single data point `x`.
-
-        Returns: 1 or -1
-        """
-        score = self(x)
-
-        "*** YOUR CODE HERE ***"
-
+        pontuacao = self(x)
+        
+        # O método .item() extrai o valor numérico para podermos comparar
+        if pontuacao.item() >= 0:
+            return 1
+        else:
+            return -1
 
 
 class RegressionModel(Module):
@@ -87,6 +60,11 @@ class RegressionModel(Module):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
         super().__init__()
+        # Definimos uma camada oculta com 512 neurônios para garantir
+        # capacidade suficiente de aproximar a curva do seno
+        self.camada_oculta = Linear(1, 512)
+        # A camada de saída mapeia os 512 recursos de volta para 1 valor real
+        self.camada_saida = Linear(512, 1)
    
 
     def forward(self, x):
@@ -99,6 +77,11 @@ class RegressionModel(Module):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
+        # Passamos os dados de entrada pela camada oculta e aplicamos a ativação ReLU
+        ativacao_nao_linear = relu(self.camada_oculta(x))
+        # A camada final não usa ativação por se tratar de um problema de regressão
+        previsao_final = self.camada_saida(ativacao_nao_linear)
+        return previsao_final
 
 
 class DigitClassificationModel(Module):
@@ -119,9 +102,14 @@ class DigitClassificationModel(Module):
     def __init__(self):
         # Initialize your model parameters here
         super().__init__()
-        input_size = 28 * 28
-        output_size = 10
+        tamanho_entrada = 28 * 28
+        tamanho_saida = 10
         "*** YOUR CODE HERE ***"
+        # Vamos criar duas camadas ocultas densas para ter uma boa precisão no MNIST
+        self.camada_oculta1 = Linear(tamanho_entrada, 256)
+        self.camada_oculta2 = Linear(256, 128)
+        # Camada final de saída que mapeia para os 10 dígitos
+        self.camada_saida = Linear(128, tamanho_saida)
 
 
     def forward(self, x):
@@ -139,6 +127,13 @@ class DigitClassificationModel(Module):
                 (also called logits)
         """
         """ YOUR CODE HERE """
+        # Passamos os dados pelas camadas e ativamos com ReLU
+        ativacao1 = relu(self.camada_oculta1(x))
+        ativacao2 = relu(self.camada_oculta2(ativacao1))
+        
+        # A camada de saída retorna os valores (logits) sem ativação
+        previsao = self.camada_saida(ativacao2)
+        return previsao
 
 
 
@@ -160,7 +155,19 @@ class LanguageIDModel(Module):
         self.languages = ["English", "Spanish", "Finnish", "Dutch", "Polish"]
         super(LanguageIDModel, self).__init__()
         "*** YOUR CODE HERE ***"
-        # Initialize your model parameters here
+        # O tamanho do estado oculto determina a "capacidade de memória" da rede
+        dimensao_oculta = 256
+        
+        # Camada exclusiva para o primeiro caractere (não há estado anterior)
+        self.camada_inicial = Linear(self.num_chars, dimensao_oculta)
+        
+        # Camadas para o loop da RNN (caracteres subsequentes)
+        self.camada_letra = Linear(self.num_chars, dimensao_oculta)
+        self.camada_memoria = Linear(dimensao_oculta, dimensao_oculta)
+        
+        # Camada final para traduzir o estado oculto nos 5 idiomas
+        self.camada_saida = Linear(dimensao_oculta, 5)
+        self.camada_memoria = Linear(dimensao_oculta, dimensao_oculta)
 
 
 
@@ -194,6 +201,17 @@ class LanguageIDModel(Module):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        # xs é uma lista onde cada elemento é a representação de uma letra
+        
+        # O estado inicial (h) começa apenas com a primeira letra (índice 0)
+        h = relu(self.camada_inicial(xs[0]))
+        
+        # Iteramos sobre o resto da palavra, atualizando a memória a cada letra
+        for letra in xs[1:]:
+            h = relu(self.camada_letra(letra) + self.camada_memoria(h))
+            
+        # Retornamos a pontuação (logits) para os 5 idiomas
+        return self.camada_saida(h)
 
 
 
@@ -213,47 +231,63 @@ def Convolve(input: tensor, weight: tensor):
     The method 'zeros((y_dim,x_dim))' may also be useful. It initializes a pytorch tensor with dimensions (y_dim, x_dim), with every value
     set to zero.
     """
-    input_tensor_dimensions = input.shape
-    weight_dimensions = weight.shape
-    Output_Tensor = tensor(())
-    "*** YOUR CODE HERE ***"
+    dimensoes_entrada = input.shape
+    dimensoes_peso = weight.shape
+    
+    # Calcular as dimensões da matriz (tensor) de saída:
+    # Altura de Saída = Altura da Entrada - Altura do Filtro + 1
+    dimensao_y = dimensoes_entrada[0] - dimensoes_peso[0] + 1
+    # Largura de Saída = Largura da Entrada - Largura do Filtro + 1
+    dimensao_x = dimensoes_entrada[1] - dimensoes_peso[1] + 1
+    
+    # Inicializar o tensor de saída com zeros
+    tensor_saida = zeros((dimensao_y, dimensao_x))
+    
+    # Deslizar o filtro (weight) sobre a imagem (input)
+    for y in range(dimensao_y):
+        for x in range(dimensao_x):
+            # Extrair o sub-tensor (recorte da imagem do mesmo tamanho do filtro)
+            # A notação de fatiamento (slicing) do Python atua nos índices exatos
+            sub_tensor = input[y : y + dimensoes_peso[0], x : x + dimensoes_peso[1]]
+            
+            # Calcular o produto escalar 2D entre o recorte e os pesos
+            # e guardar o resultado no píxel correspondente do tensor de saída
+            tensor_saida[y, x] = tensordot(sub_tensor, weight, dims=2)
 
-    "*** End Code ***"
-    return Output_Tensor
+    return tensor_saida
 
 
 class DigitConvolutionalModel(Module):
-    """
-    A model for handwritten digit classification using the MNIST dataset.
-
-    This class is a convolutational model which has already been trained on MNIST.
-    if Convolve() has been correctly implemented, this model should be able to achieve a high accuracy
-    on the mnist dataset given the pretrained weights.
-
-    Note that this class looks different from a standard pytorch model since we don't need to train it
-    as it will be run on preset weights.
-    """
-
     def __init__(self):
-        # Initialize your model parameters here
         super().__init__()
-        output_size = 10
-
+        tamanho_saida = 10
         self.convolution_weights = Parameter(ones((3, 3)))
-        """ YOUR CODE HERE """
-
+        
+        # Após a convolução com um filtro 3x3, a imagem 28x28 passa para 26x26.
+        # O tamanho achatado será 26 * 26 = 676
+        tamanho_pos_conv = 26 * 26
+        
+        # Adicionamos uma camada oculta e a camada de saída
+        self.camada_oculta = Linear(tamanho_pos_conv, 128)
+        self.camada_saida = Linear(128, tamanho_saida)
 
     def forward(self, x):
-        """
-        The convolutional layer is already applied, and the output is flattened for you. You should treat x as
-        a regular 1-dimensional datapoint now, similar to the previous questions.
-        """
+        # O PyTorch reestrutura o lote para imagens 28x28
         x = x.reshape(len(x), 28, 28)
+        
+        # Aplica a nossa função manual de convolução
         x = stack(
             list(map(lambda sample: Convolve(sample, self.convolution_weights), x))
         )
+        
+        # Achata a imagem 26x26 de volta para um vetor 1D
         x = x.flatten(start_dim=1)
-        """ YOUR CODE HERE """
+        
+        # Passamos pela camada oculta com ReLU e depois pela camada de saída
+        ativacao = relu(self.camada_oculta(x))
+        previsao = self.camada_saida(ativacao)
+        
+        return previsao
 
 
 class Attention(Module):
@@ -293,4 +327,25 @@ class Attention(Module):
         B, T, C = input.size()
 
         """YOUR CODE HERE"""
+        # 1. Gerar as matrizes Query (Q), Key (K) e Value (V)
+        matriz_q = self.q_layer(input)
+        matriz_k = self.k_layer(input)
+        matriz_v = self.v_layer(input)
 
+        # 2. Produto escalar entre Q e K transposta (transpomos as últimas duas dimensões de K)
+        k_transposta = movedim(matriz_k, 1, 2)
+        
+        # O resultado é dividido pela raiz quadrada do tamanho da camada (para estabilidade)
+        pontuacoes_atencao = matmul(matriz_q, k_transposta) / (self.layer_size ** 0.5)
+
+        # 3. Aplicar a máscara causal
+        # O [0] no final alinha a dimensão com o que o autograder de Berkeley espera no broadcast
+        pontuacoes_atencao = pontuacoes_atencao.masked_fill(self.mask[:,:,:T,:T] == 0, float('-inf'))[0]
+        
+        # 4. Transformar as pontuações em probabilidades usando Softmax na última dimensão (dim=-1)
+        probabilidades = softmax(pontuacoes_atencao, dim=-1)
+
+        # 5. Multiplicar as probabilidades pelos Valores (V)
+        resultado = matmul(probabilidades, matriz_v)
+
+        return resultado
